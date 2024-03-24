@@ -1,3 +1,4 @@
+attribute highp vec4 aVertexPosition; 
 attribute highp vec2 aTextureCoord;
 uniform highp mat4 uProjectionMatrix;
 uniform highp mat4 uModelViewMatrix;

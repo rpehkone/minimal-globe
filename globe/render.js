@@ -51,38 +51,6 @@ async function initShaderProgram(gl) {
     return shaderProgram;
 }
 
-const shaderProgram = await initShaderProgram(gl);
-const positionLocation = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-const texcoordLocation = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-
-
-const positionBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-const positions = [
-    -1.0, -1.0, 0.0,
-     1.0, -1.0, 0.0,
-    -1.0,  1.0, 0.0,
-    -1.0,  1.0, 0.0,
-     1.0, -1.0, 0.0,
-     1.0,  1.0, 0.0,
-];
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-const texcoordBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-    0.0, 1.0,
-    1.0, 1.0,
-    0.0, 0.0,
-    0.0, 0.0,
-    1.0, 1.0,
-    1.0, 0.0,
-]), gl.STATIC_DRAW);
-
-const texture = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, texture);
-
 function setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
     function isPowerOfTwo(x) {
         return (x & (x - 1)) === 0;
@@ -102,27 +70,63 @@ function setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
     }
 }
 
-const image = new Image();
-image.crossOrigin = 'anonymous'
-image.src = 'https://tile.openstreetmap.org/0/0/0.png'
-// image.src = 'https://tile.openstreetmap.org/${z}/${x}/${y}.png'
-image.onload = function() {
+let positionLocation, texcoordLocation;
+let positionBuffer, texcoordBuffer, texture;
+let shaderProgram;
+
+async function initApplication(gl) {
+    shaderProgram = await initShaderProgram(gl);
+    positionLocation = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+    texcoordLocation = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+    positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+    const positions = [
+        -1.0, -1.0, 0.0,
+        1.0, -1.0, 0.0,
+        -1.0,  1.0, 0.0,
+        -1.0,  1.0, 0.0,
+        1.0, -1.0, 0.0,
+        1.0,  1.0, 0.0,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    texcoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        0.0, 1.0,
+        1.0, 1.0,
+        0.0, 0.0,
+        0.0, 0.0,
+        1.0, 1.0,
+        1.0, 0.0,
+    ]), gl.STATIC_DRAW);
+
+    texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    
-    const level = 0;
-    const internalFormat = gl.RGBA;
-    const border = 0;
-    const format = gl.RGBA;
-    const type = gl.UNSIGNED_BYTE;
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, image.width, image.height,
-                    border, format, type, image);
+    const image = new Image();
+    image.crossOrigin = 'anonymous'
+    image.src = 'https://tile.openstreetmap.org/0/0/0.png'
+    // image.src = 'https://tile.openstreetmap.org/${z}/${x}/${y}.png'
+    image.onload = function() {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
-    requestAnimationFrame(drawScene);
-};
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const border = 0;
+        const format = gl.RGBA;
+        const type = gl.UNSIGNED_BYTE;
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, image.width, image.height,
+                        border, format, type, image);
+
+        setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
+    };
+    return shaderProgram
+}
 
 function drawScene() {
     var projectionMatrix = mat4.create();
@@ -154,6 +158,10 @@ function drawScene() {
 
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(drawScene);
 }
 
-drawScene()
+(async () => {
+    await initApplication(gl);
+    drawScene();
+})();
