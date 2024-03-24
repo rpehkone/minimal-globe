@@ -8,26 +8,18 @@ if (!gl) {
 
 var anistropicExtensions = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
 
-const vsSource = `
-  attribute highp vec4 aVertexPosition;
-  attribute highp vec2 aTextureCoord;
-  uniform highp mat4 uProjectionMatrix;
-  uniform highp mat4 uModelViewMatrix;
-
-  varying highp vec2 vTextureCoord;
-  void main(void) {
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-    vTextureCoord = aTextureCoord;
-  }
-`;
-
-const fsSource = `
-  varying highp vec2 vTextureCoord;
-  uniform highp sampler2D uSampler;
-  void main(void) {
-    gl_FragColor = texture2D(uSampler, vTextureCoord);
-  }
-`;
+async function fileToString(filename) {
+    try {
+        const response = await fetch(filename);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return await response.text();
+    } catch (error) {
+        console.error('There was a problem with the fetch operation:', error);
+        throw error;
+    }
+}
 
 function compileShader(gl, source, type) {
     const shader = gl.createShader(type);
@@ -41,7 +33,11 @@ function compileShader(gl, source, type) {
     return shader;
 }
 
-function initShaderProgram(gl, vsSource, fsSource) {
+async function initShaderProgram(gl) {
+    var vsSource = await fileToString(window.location.href + 'globe/texture_vertex.glsl')
+    var fsSource = await fileToString(window.location.href + 'globe/texture_frag.glsl')
+    console.log("vs", vsSource)
+
     const vertexShader = compileShader(gl, vsSource, gl.VERTEX_SHADER);
     const fragmentShader = compileShader(gl, fsSource, gl.FRAGMENT_SHADER);
     const shaderProgram = gl.createProgram();
@@ -55,9 +51,10 @@ function initShaderProgram(gl, vsSource, fsSource) {
     return shaderProgram;
 }
 
-const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+const shaderProgram = await initShaderProgram(gl);
 const positionLocation = gl.getAttribLocation(shaderProgram, "aVertexPosition");
 const texcoordLocation = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+
 
 const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -159,4 +156,4 @@ function drawScene() {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
-drawScene();
+drawScene()
