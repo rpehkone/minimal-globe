@@ -1,17 +1,26 @@
 const canvas = document.getElementById('renderCanvas');
-const gl = canvas.getContext('webgl');
+const gl = canvas.getContext('webgl2', { antialias: true });
 
 if (!gl) {
     console.error('WebGL not supported');
     throw 'WebGL not supported';
 }
 
+var ext = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
+if (ext){
+  var max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+  gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
+}
+
 const vsSource = `
-  attribute vec4 aVertexPosition;
+  attribute highp vec4 aVertexPosition;
   attribute highp vec2 aTextureCoord;
+  uniform highp mat4 uProjectionMatrix;
+  uniform highp mat4 uModelViewMatrix;
+
   varying highp vec2 vTextureCoord;
   void main(void) {
-    gl_Position = aVertexPosition;
+    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
     vTextureCoord = aTextureCoord;
   }
 `;
@@ -58,30 +67,28 @@ const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
 const positions = [
-    -1.0, -1.0,
-    1.0, -1.0,
-    -1.0, 1.0,
-    -1.0, 1.0,
-    1.0, -1.0,
-    1.0, 1.0,
+    -1.0, -1.0, 0.0,
+     1.0, -1.0, 0.0,
+    -1.0,  1.0, 0.0,
+    -1.0,  1.0, 0.0,
+     1.0, -1.0, 0.0,
+     1.0,  1.0, 0.0,
 ];
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
 const texcoordBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-    0.0, 0.0,
-    1.0, 0.0,
     0.0, 1.0,
-    0.0, 1.0,
-    1.0, 0.0,
     1.0, 1.0,
+    0.0, 0.0,
+    0.0, 0.0,
+    1.0, 1.0,
+    1.0, 0.0,
 ]), gl.STATIC_DRAW);
 
 const texture = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, texture);
-
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
 
 function setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
     function isPowerOfTwo(x) {
@@ -94,39 +101,60 @@ function setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
     } else {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 }
 
 const image = new Image();
+image.src = './car.png'
 image.onload = function() {
+    var canvas = document.createElement('canvas');
+
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    setupTextureFilteringAndMipmaps(image.width, image.height);
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    const targetTextureWidth = 512 / 1;
+    const targetTextureHeight = 512 / 1;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, targetTextureWidth, targetTextureHeight,
+                    border, format, type, image);
 
+    setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
     requestAnimationFrame(drawScene);
 };
 
-image.src = './dog.png'
-
 function drawScene() {
+    var projectionMatrix = mat4.create();
+    var modelViewMatrix = mat4.create();
+
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.useProgram(shaderProgram);
 
     gl.enableVertexAttribArray(positionLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
 
     gl.enableVertexAttribArray(texcoordLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
     gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+    gl.uniformMatrix4fv(
+        gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+        false,
+        projectionMatrix
+    );
+    gl.uniformMatrix4fv(
+        gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+        false,
+        modelViewMatrix
+    );
 
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
