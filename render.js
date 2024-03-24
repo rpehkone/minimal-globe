@@ -6,11 +6,7 @@ if (!gl) {
     throw 'WebGL not supported';
 }
 
-var ext = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
-if (ext){
-  var max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-  gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
-}
+var anistropicExtensions = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
 
 const vsSource = `
   attribute highp vec4 aVertexPosition;
@@ -102,13 +98,18 @@ function setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    if (anistropicExtensions){
+        var max = gl.getParameter(anistropicExtensions.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+        gl.texParameterf(gl.TEXTURE_2D, anistropicExtensions.TEXTURE_MAX_ANISOTROPY_EXT, max);
+    }
 }
 
 const image = new Image();
-image.src = './car.png'
+image.crossOrigin = 'anonymous'
+image.src = 'https://tile.openstreetmap.org/0/0/0.png'
+// image.src = 'https://tile.openstreetmap.org/${z}/${x}/${y}.png'
 image.onload = function() {
-    var canvas = document.createElement('canvas');
-
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -119,9 +120,7 @@ image.onload = function() {
     const border = 0;
     const format = gl.RGBA;
     const type = gl.UNSIGNED_BYTE;
-    const targetTextureWidth = 512 / 1;
-    const targetTextureHeight = 512 / 1;
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, targetTextureWidth, targetTextureHeight,
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, image.width, image.height,
                     border, format, type, image);
 
     setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
