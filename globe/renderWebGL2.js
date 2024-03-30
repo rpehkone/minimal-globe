@@ -171,7 +171,25 @@ export class Renderer {
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
+    resizeCanvasToDisplaySize() {
+        const width = this.canvas.clientWidth * window.devicePixelRatio;
+        const height = this.canvas.clientHeight * window.devicePixelRatio;
+
+        if (this.canvas.width !== width || this.canvas.height !== height) {
+            this.canvas.width = width;
+            this.canvas.height = height;
+            return true;
+        }
+
+        return false;
+    }
+
+
     drawScene() {
+        if (this.resizeCanvasToDisplaySize()) {
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }
+
         this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
@@ -190,7 +208,7 @@ export class Renderer {
 
         var projectionMatrix = mat4.create();
         const fovy = degToRad(90)
-        const aspect = window.innerWidth / window.innerHeight;
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         const near = 0.1;
         const far = 1000;
         mat4.perspective(projectionMatrix, fovy, aspect, near, far);
