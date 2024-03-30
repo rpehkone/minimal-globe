@@ -1,7 +1,6 @@
 export class Renderer {
     canvas = null
     gl = null
-    #initialized = false
     #anistropicExtensions
     #shaderProgram
     #positionLocation
@@ -9,16 +8,19 @@ export class Renderer {
     #positionBuffer
     #texcoordBuffer
     #texture
+    #startTimeMs
 
     constructor(getCanvas) {
         this.canvas = getCanvas
         this.gl = this.canvas.getContext('webgl2', { antialias: true });
         this.drawScene = this.drawScene.bind(this);
+        this.#startTimeMs = Date.now()
 
         if (!this.gl) {
             console.error('WebGL not supported');
             throw 'WebGL not supported';
         }
+        this.gl.viewport(0, 0, this.gl.drawingBufferWidth * 1, this.gl.drawingBufferHeight * 1);
         this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
     }
 
@@ -133,21 +135,10 @@ export class Renderer {
                             border, format, type, image);
 
             this.setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
-            this.#initialized = true
         };
     }
 
-    drawScene() {
-        if (!this.#initialized) {
-            requestAnimationFrame(this.drawScene);
-            return
-        }
-        var projectionMatrix = mat4.create();
-        var modelViewMatrix = mat4.create();
-
-        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
+    drawQuad(textureID, modelMatrix, viewMatrix, projectionMatrix) {
         this.gl.useProgram(this.#shaderProgram);
 
         this.gl.enableVertexAttribArray(this.#positionLocation);
@@ -159,18 +150,52 @@ export class Renderer {
         this.gl.vertexAttribPointer(this.#texcoordLocation, 2, this.gl.FLOAT, false, 0, 0);
 
         this.gl.uniformMatrix4fv(
+            this.gl.getUniformLocation(this.#shaderProgram, 'uModelMatrix'),
+            false,
+            modelMatrix
+        );
+
+        this.gl.uniformMatrix4fv(
+            this.gl.getUniformLocation(this.#shaderProgram, 'uViewMatrix'),
+            false,
+            viewMatrix
+        );
+
+        this.gl.uniformMatrix4fv(
             this.gl.getUniformLocation(this.#shaderProgram, 'uProjectionMatrix'),
             false,
             projectionMatrix
         );
-        this.gl.uniformMatrix4fv(
-            this.gl.getUniformLocation(this.#shaderProgram, 'uModelViewMatrix'),
-            false,
-            modelViewMatrix
-        );
 
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#texture);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, textureID);
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+    }
+
+    drawScene() {
+        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+        var modelMatrix = mat4.create();
+        let dtSec = (Date.now() - this.#startTimeMs) / 1000
+        let spinDurationSec = 4
+        let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
+        let rotYRad = degToRad(360 * progress);
+        mat4.rotate(modelMatrix, modelMatrix, rotYRad, [0, 1, 0]);
+
+
+        var viewMatrix = mat4.create();
+        const translation = vec3.fromValues(0, 0, -1);
+        mat4.translate(viewMatrix, viewMatrix, translation);
+
+
+        var projectionMatrix = mat4.create();
+        const fovy = degToRad(90)
+        const aspect = window.innerWidth / window.innerHeight;
+        const near = 0.1;
+        const far = 1000;
+        mat4.perspective(projectionMatrix, fovy, aspect, near, far);
+
+        this.drawQuad(this.#texture, modelMatrix, viewMatrix, projectionMatrix)
         requestAnimationFrame(this.drawScene);
     }
 }

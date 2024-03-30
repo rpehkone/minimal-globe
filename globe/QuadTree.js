@@ -1,19 +1,18 @@
 class MapQuadTreeNode {
-    #octreeMaxDepth = 19
+    #octreeMaxDepth = 3
     #imageWidth = 500
 
     constructor(z, x, y, isRight, isDown) {
         this.z = z
         this.x = x
         this.y = y
+        this.children = [null, null, null, null]
         this.isRight = isRight
         this.isDown = isDown
         this.img = null
-        this.children = [null, null, null, null]
 
         const imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
         // const imageUrl = `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}.png`
-        this.addImageToPage(imageUrl)
     }
 
     addChildNodes() {
@@ -74,21 +73,5 @@ class MapQuadTreeNode {
                 this.children[i].update(posX, posY, mapZ)
             }
         }
-    }
-
-    addImageToPage(imageUrl) {
-        this.img = document.createElement('img')
-
-        this.img.src = imageUrl
-        this.img.width = this.#imageWidth
-        this.img.addEventListener('contextmenu', function (e) {
-            e.preventDefault()
-        });
-        this.img.style.position = 'absolute'
-        this.img.style.userSelect = 'none'
-        this.img.style.border = '1px solid #a61603'
-
-        const container = document.getElementById('contain')
-        container.appendChild(this.img)
     }
 }

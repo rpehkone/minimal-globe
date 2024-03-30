@@ -1,3 +1,11 @@
+function degToRad(degrees) {
+	return degrees * Math.PI / 180;
+}
+
+function fmod(a, b) {
+    return a - Math.floor(a / b) * b;
+}
+
 function latLonAltToECEF(lat, lon, h) {
 	// WGS-84 ellipsoidal parameters
 	const a = 6378137.0 // Semi-major axis in meters
