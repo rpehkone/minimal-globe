@@ -1,3 +1,5 @@
+import { MapQuadTreeNode } from './quadTree.js';
+
 class SquareMesh {
     gl;
     #textureID
@@ -88,6 +90,10 @@ export class Renderer {
     #texcoordBuffer
     #startTimeMs
 
+    #frameModelMatrix
+    #frameViewMatrix
+    #frameProjectionMatrix
+
     constructor(getCanvas) {
         this.canvas = getCanvas
         this.gl = this.canvas.getContext('webgl2', { antialias: true });
@@ -98,7 +104,9 @@ export class Renderer {
             console.error('WebGL not supported');
             throw 'WebGL not supported';
         }
-        this.gl.viewport(0, 0, this.gl.drawingBufferWidth * 1, this.gl.drawingBufferHeight * 1);
+        this.#resizeCanvasToDisplaySize()
+
+        this.rootNode = new MapQuadTreeNode(this)
     }
 
     addMapTile(textureURL, corner1, corner2, corner3, corner4) {
@@ -120,15 +128,17 @@ export class Renderer {
             1.0, 1.0,
             1.0, 0.0,
         ]), this.gl.STATIC_DRAW);
+    }
 
-        var corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
-        var corner2 = vec3.fromValues(1.0, -1.0, 0.0);
-        var corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
-        var corner4 = vec3.fromValues(1.0, 1.0, 0.0);
-        this.square1 = new SquareMesh(this.gl, 
-            'https://tile.openstreetmap.org/0/0/0.png',
-            //'https://tile.openstreetmap.org/${z}/${x}/${y}.png',
-            corner1, corner2, corner3, corner4);
+    #resizeCanvasToDisplaySize() {
+        const width = this.canvas.clientWidth * window.devicePixelRatio;
+        const height = this.canvas.clientHeight * window.devicePixelRatio;
+
+        if (this.canvas.width !== width || this.canvas.height !== height) {
+            this.canvas.width = width;
+            this.canvas.height = height;
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }
     }
 
     async #fileToString(filename) {
@@ -173,7 +183,7 @@ export class Renderer {
         return shaderProgram;
     }
 
-    #drawSquareMesh(square, modelMatrix, viewMatrix, projectionMatrix) {
+    drawSquareMesh(square) {
         this.gl.useProgram(this.#shaderProgram);
 
         this.gl.enableVertexAttribArray(this.#positionLocation);
@@ -187,67 +197,52 @@ export class Renderer {
         this.gl.uniformMatrix4fv(
             this.gl.getUniformLocation(this.#shaderProgram, 'uModelMatrix'),
             false,
-            modelMatrix
+            this.#frameModelMatrix
         );
 
         this.gl.uniformMatrix4fv(
             this.gl.getUniformLocation(this.#shaderProgram, 'uViewMatrix'),
             false,
-            viewMatrix
+            this.#frameViewMatrix
         );
 
         this.gl.uniformMatrix4fv(
             this.gl.getUniformLocation(this.#shaderProgram, 'uProjectionMatrix'),
             false,
-            projectionMatrix
+            this.#frameProjectionMatrix
         );
 
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
-    resizeCanvasToDisplaySize() {
-        const width = this.canvas.clientWidth * window.devicePixelRatio;
-        const height = this.canvas.clientHeight * window.devicePixelRatio;
-
-        if (this.canvas.width !== width || this.canvas.height !== height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
-            return true;
-        }
-
-        return false;
-    }
-
-
     drawScene() {
-        if (this.resizeCanvasToDisplaySize()) {
-            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        }
+        this.#resizeCanvasToDisplaySize()
 
         this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        var modelMatrix = mat4.create();
+        this.#frameModelMatrix = mat4.create();
         // let dtSec = (Date.now() - this.#startTimeMs) / 1000
         // let spinDurationSec = 4
         // let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
         // let rotYRad = degToRad(360 * progress);
-        // mat4.rotate(modelMatrix, modelMatrix, rotYRad, [0, 1, 0]);
+        // mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
 
 
-        var viewMatrix = mat4.create();
+        this.#frameViewMatrix = mat4.create();
         const translation = vec3.fromValues(0, 0, -2);
-        mat4.translate(viewMatrix, viewMatrix, translation);
+        mat4.translate(this.#frameViewMatrix, this.#frameViewMatrix, translation);
 
 
-        var projectionMatrix = mat4.create();
+        this.#frameProjectionMatrix = mat4.create();
         const fovy = degToRad(90)
         const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         const near = 0.1;
         const far = 1000;
-        mat4.perspective(projectionMatrix, fovy, aspect, near, far);
+        mat4.perspective(this.#frameProjectionMatrix, fovy, aspect, near, far);
 
-        this.#drawSquareMesh(this.square1, modelMatrix, viewMatrix, projectionMatrix)
+        this.rootNode.renderQuadTree()
+
         requestAnimationFrame(this.drawScene);
     }
 }

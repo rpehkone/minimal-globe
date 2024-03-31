@@ -1,17 +1,34 @@
-class MapQuadTreeNode {
+export class MapQuadTreeNode {
     #octreeMaxDepth = 3
     #imageWidth = 500
 
-    constructor(z, x, y, isRight, isDown) {
+    constructor(renderer, z=0, x=0, y=0, isRight=0, isDown=0) {
+        this.renderer = renderer
         this.z = z
         this.x = x
         this.y = y
-        this.children = [null, null, null, null]
         this.isRight = isRight
         this.isDown = isDown
+        this.children = [null, null, null, null]
         this.img = null
+        this.squareMesh = null
+        this.imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
 
-        const imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+        this.initVertices()
+    }
+
+    initVertices() {
+        var corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
+        var corner2 = vec3.fromValues(1.0, -1.0, 0.0);
+        var corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
+        var corner4 = vec3.fromValues(1.0, 1.0, 0.0);
+        this.squareMesh = this.renderer.addMapTile(
+            'https://tile.openstreetmap.org/0/0/0.png',
+            corner1,
+            corner2,
+            corner3,
+            corner4
+        )
     }
 
     addChildNodes() {
@@ -27,13 +44,22 @@ class MapQuadTreeNode {
                 if (this.children[i] == null) {
                     const newX = 2 * this.x + tiles[i].x
                     const newY = 2 * this.y + tiles[i].y
-                    this.children[i] = new MapQuadTreeNode(this.z + 1, newX, newY, tiles[i].x, tiles[i].y)
+                    this.children[i] = new MapQuadTreeNode(this.renderer, this.z + 1, newX, newY, tiles[i].x, tiles[i].y)
                 }
             }
         }
     }
 
     deleteChildNodes() {
+    }
+
+    renderQuadTree() {
+        this.renderer.drawSquareMesh(this.squareMesh)
+        for (let i = 0; i < 4; i++) {
+            if (this.children[i]) {
+                this.children[i].render()
+            }
+        }
     }
 
     update(mapX, mapY, mapZ) {
