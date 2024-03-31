@@ -1,3 +1,35 @@
+class SquareMesh {
+    #gl;
+    #positionBuffer;
+    #vertices;
+
+    /**
+     * @param {WebGL2RenderingContext} gl The WebGL2 rendering context.
+     */
+    constructor(gl, corner1, corner2, corner3, corner4) {
+        this.#gl = gl;
+        this.#vertices = this.#createVertices(corner1, corner2, corner3, corner4);
+        this.#setupBuffers();
+    }
+
+    #createVertices(corner1, corner2, corner3, corner4) {
+        return new Float32Array([
+            ...corner1, ...corner2, ...corner3, // first triangle
+            ...corner3, ...corner2, ...corner4  // second triangle
+        ]);
+    }
+
+    #setupBuffers() {
+        this.#positionBuffer = this.#gl.createBuffer();
+        this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, this.#positionBuffer);
+        this.#gl.bufferData(this.#gl.ARRAY_BUFFER, this.#vertices, this.#gl.STATIC_DRAW);
+    }
+
+    bind() {
+        this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, this.#positionBuffer);
+    }
+}
+
 export class Renderer {
     canvas = null
     gl = null
@@ -5,7 +37,6 @@ export class Renderer {
     #shaderProgram
     #positionLocation
     #texcoordLocation
-    #positionBuffer
     #texcoordBuffer
     #texture
     #startTimeMs
@@ -89,18 +120,12 @@ export class Renderer {
         this.#shaderProgram = await this.initShaderProgram();
         this.#positionLocation = this.gl.getAttribLocation(this.#shaderProgram, "aVertexPosition");
         this.#texcoordLocation = this.gl.getAttribLocation(this.#shaderProgram, "aTextureCoord");
-        this.#positionBuffer = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
 
-        const positions = [
-            -1.0, -1.0, 0.0,
-            1.0, -1.0, 0.0,
-            -1.0,  1.0, 0.0,
-            -1.0,  1.0, 0.0,
-            1.0, -1.0, 0.0,
-            1.0,  1.0, 0.0,
-        ];
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+        const corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
+        const corner2 = vec3.fromValues(1.0, -1.0, 0.0);
+        const corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
+        const corner4 = vec3.fromValues(1.0, 1.0, 0.0);
+        this.square = new SquareMesh(this.gl, corner1, corner2, corner3, corner4);
 
         this.#texcoordBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#texcoordBuffer);
@@ -142,7 +167,8 @@ export class Renderer {
         this.gl.useProgram(this.#shaderProgram);
 
         this.gl.enableVertexAttribArray(this.#positionLocation);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
+        this.square.bind()
+
         this.gl.vertexAttribPointer(this.#positionLocation, 3, this.gl.FLOAT, false, 0, 0);
 
         this.gl.enableVertexAttribArray(this.#texcoordLocation);
@@ -194,11 +220,11 @@ export class Renderer {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         var modelMatrix = mat4.create();
-        let dtSec = (Date.now() - this.#startTimeMs) / 1000
-        let spinDurationSec = 4
-        let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
-        let rotYRad = degToRad(360 * progress);
-        mat4.rotate(modelMatrix, modelMatrix, rotYRad, [0, 1, 0]);
+        // let dtSec = (Date.now() - this.#startTimeMs) / 1000
+        // let spinDurationSec = 4
+        // let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
+        // let rotYRad = degToRad(360 * progress);
+        // mat4.rotate(modelMatrix, modelMatrix, rotYRad, [0, 1, 0]);
 
 
         var viewMatrix = mat4.create();
