@@ -1,15 +1,20 @@
 class SquareMesh {
-    #gl;
+    gl;
+    #textureID
+    #anistropicExtensions
     #positionBuffer;
     #vertices;
 
     /**
      * @param {WebGL2RenderingContext} gl The WebGL2 rendering context.
      */
-    constructor(gl, corner1, corner2, corner3, corner4) {
-        this.#gl = gl;
+    constructor(gl, textureURL, corner1, corner2, corner3, corner4) {
+        this.gl = gl;
         this.#vertices = this.#createVertices(corner1, corner2, corner3, corner4);
         this.#setupBuffers();
+
+        this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
+        this.setupTexture(textureURL)
     }
 
     #createVertices(corner1, corner2, corner3, corner4) {
@@ -20,25 +25,68 @@ class SquareMesh {
     }
 
     #setupBuffers() {
-        this.#positionBuffer = this.#gl.createBuffer();
-        this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, this.#positionBuffer);
-        this.#gl.bufferData(this.#gl.ARRAY_BUFFER, this.#vertices, this.#gl.STATIC_DRAW);
+        this.#positionBuffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.#vertices, this.gl.STATIC_DRAW);
     }
 
     bind() {
-        this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, this.#positionBuffer);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
+    }
+
+
+    setupTexture(textureURL) {
+        this.#textureID = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
+        const image = new Image();
+        image.src = textureURL
+        image.crossOrigin = 'anonymous'
+        image.onload = () => {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
+
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+            
+            const level = 0;
+            const internalFormat = this.gl.RGBA;
+            const border = 0;
+            const format = this.gl.RGBA;
+            const type = this.gl.UNSIGNED_BYTE;
+            this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, image.width, image.height,
+                            border, format, type, image);
+
+            this.setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
+        };
+    }
+
+    setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
+        function isPowerOfTwo(x) {
+            return (x & (x - 1)) === 0;
+        }
+
+        if (isPowerOfTwo(textureWidth) && isPowerOfTwo(textureHeight)) {
+            this.gl.generateMipmap(this.gl.TEXTURE_2D);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR);
+        } else {
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        }
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+
+        if (this.#anistropicExtensions){
+            var max = this.gl.getParameter(this.#anistropicExtensions.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            this.gl.texParameterf(this.gl.TEXTURE_2D, this.#anistropicExtensions.TEXTURE_MAX_ANISOTROPY_EXT, max);
+        }
     }
 }
 
 export class Renderer {
     canvas = null
     gl = null
-    #anistropicExtensions
     #shaderProgram
     #positionLocation
     #texcoordLocation
     #texcoordBuffer
-    #texture
     #startTimeMs
 
     constructor(getCanvas) {
@@ -52,7 +100,6 @@ export class Renderer {
             throw 'WebGL not supported';
         }
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth * 1, this.gl.drawingBufferHeight * 1);
-        this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
     }
 
     async fileToString(filename) {
@@ -97,35 +144,19 @@ export class Renderer {
         return shaderProgram;
     }
 
-    setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
-        function isPowerOfTwo(x) {
-            return (x & (x - 1)) === 0;
-        }
-
-        if (isPowerOfTwo(textureWidth) && isPowerOfTwo(textureHeight)) {
-            this.gl.generateMipmap(this.gl.TEXTURE_2D);
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR);
-        } else {
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-        }
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-
-        if (this.#anistropicExtensions){
-            var max = this.gl.getParameter(this.#anistropicExtensions.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-            this.gl.texParameterf(this.gl.TEXTURE_2D, this.#anistropicExtensions.TEXTURE_MAX_ANISOTROPY_EXT, max);
-        }
-    }
-
     async initRenderer() {
         this.#shaderProgram = await this.initShaderProgram();
         this.#positionLocation = this.gl.getAttribLocation(this.#shaderProgram, "aVertexPosition");
         this.#texcoordLocation = this.gl.getAttribLocation(this.#shaderProgram, "aTextureCoord");
 
-        const corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
-        const corner2 = vec3.fromValues(1.0, -1.0, 0.0);
-        const corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
-        const corner4 = vec3.fromValues(1.0, 1.0, 0.0);
-        this.square = new SquareMesh(this.gl, corner1, corner2, corner3, corner4);
+        var corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
+        var corner2 = vec3.fromValues(1.0, -1.0, 0.0);
+        var corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
+        var corner4 = vec3.fromValues(1.0, 1.0, 0.0);
+        this.square1 = new SquareMesh(this.gl, 
+            'https://tile.openstreetmap.org/0/0/0.png',
+            //'https://tile.openstreetmap.org/${z}/${x}/${y}.png',
+            corner1, corner2, corner3, corner4);
 
         this.#texcoordBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#texcoordBuffer);
@@ -138,37 +169,13 @@ export class Renderer {
             1.0, 0.0,
         ]), this.gl.STATIC_DRAW);
 
-        this.#texture = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#texture);
-
-        const image = new Image();
-        image.crossOrigin = 'anonymous'
-        image.src = 'https://tile.openstreetmap.org/0/0/0.png'
-        // image.src = 'https://tile.openstreetmap.org/${z}/${x}/${y}.png'
-        image.onload = () => {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.#texture);
-
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-            
-            const level = 0;
-            const internalFormat = this.gl.RGBA;
-            const border = 0;
-            const format = this.gl.RGBA;
-            const type = this.gl.UNSIGNED_BYTE;
-            this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, image.width, image.height,
-                            border, format, type, image);
-
-            this.setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
-        };
     }
 
-    drawQuad(textureID, modelMatrix, viewMatrix, projectionMatrix) {
+    drawSquareMesh(square, modelMatrix, viewMatrix, projectionMatrix) {
         this.gl.useProgram(this.#shaderProgram);
 
         this.gl.enableVertexAttribArray(this.#positionLocation);
-        this.square.bind()
-
+        square.bind()
         this.gl.vertexAttribPointer(this.#positionLocation, 3, this.gl.FLOAT, false, 0, 0);
 
         this.gl.enableVertexAttribArray(this.#texcoordLocation);
@@ -193,7 +200,6 @@ export class Renderer {
             projectionMatrix
         );
 
-        this.gl.bindTexture(this.gl.TEXTURE_2D, textureID);
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
@@ -228,7 +234,7 @@ export class Renderer {
 
 
         var viewMatrix = mat4.create();
-        const translation = vec3.fromValues(0, 0, -1);
+        const translation = vec3.fromValues(0, 0, -2);
         mat4.translate(viewMatrix, viewMatrix, translation);
 
 
@@ -239,7 +245,7 @@ export class Renderer {
         const far = 1000;
         mat4.perspective(projectionMatrix, fovy, aspect, near, far);
 
-        this.drawQuad(this.#texture, modelMatrix, viewMatrix, projectionMatrix)
+        this.drawSquareMesh(this.square1, modelMatrix, viewMatrix, projectionMatrix)
         requestAnimationFrame(this.drawScene);
     }
 }

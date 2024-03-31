@@ -12,15 +12,14 @@ class MapQuadTreeNode {
         this.img = null
 
         const imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
-        // const imageUrl = `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}.png`
     }
 
     addChildNodes() {
         const tiles = [
-            { x: 0, y: 0 },     // Top-left
-            { x: 1, y: 0 },     // Top-right
-            { x: 0, y: 1 },     // Bottom-left
-            { x: 1, y: 1 }      // Bottom-right
+            { x: 0, y: 0 }, // Top-left
+            { x: 1, y: 0 }, // Top-right
+            { x: 0, y: 1 }, // Bottom-left
+            { x: 1, y: 1 }  // Bottom-right
         ];
 
         if (this.z + 1 <= this.#octreeMaxDepth) {
@@ -35,14 +34,6 @@ class MapQuadTreeNode {
     }
 
     deleteChildNodes() {
-    }
-
-    isImageOnScreen(imgPosX, imgPosY, imgWidth, imgHeight) {
-        const imgRightEdge = imgPosX + imgWidth;
-        const imgBottomEdge = imgPosY + imgHeight;
-        const isVisibleHorizontally = imgRightEdge > 0 && imgPosX < window.innerWidth;
-        const isVisibleVertically = imgBottomEdge > 0 && imgPosY < window.innerHeight;
-        return isVisibleHorizontally && isVisibleVertically;
     }
 
     update(mapX, mapY, mapZ) {
