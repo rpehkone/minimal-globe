@@ -1,4 +1,4 @@
-import { Renderer } from './renderWebGL2.js';
+import { Renderer } from './rendererWebGL2.js';
 
 class Globe {
     static async create() {
