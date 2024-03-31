@@ -12,10 +12,7 @@ class Globe {
 
         this.renderer = new Renderer(this.canvas)
         await this.renderer.initRenderer();
-        this.mainLoop();
-    }
 
-    mainLoop() {
         this.renderer.drawScene();
     }
 }

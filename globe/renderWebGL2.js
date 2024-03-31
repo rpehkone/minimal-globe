@@ -14,7 +14,12 @@ class SquareMesh {
         this.#setupBuffers();
 
         this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
-        this.setupTexture(textureURL)
+        this.#setupTexture(textureURL)
+    }
+
+    bind() {
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
     }
 
     #createVertices(corner1, corner2, corner3, corner4) {
@@ -30,13 +35,7 @@ class SquareMesh {
         this.gl.bufferData(this.gl.ARRAY_BUFFER, this.#vertices, this.gl.STATIC_DRAW);
     }
 
-    bind() {
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
-    }
-
-
-    setupTexture(textureURL) {
+    #setupTexture(textureURL) {
         this.#textureID = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
         const image = new Image();
@@ -56,11 +55,11 @@ class SquareMesh {
             this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, image.width, image.height,
                             border, format, type, image);
 
-            this.setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
+            this.#setupTextureFilteringAndMipmaps(image.naturalWidth, image.naturalWidth);
         };
     }
 
-    setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
+    #setupTextureFilteringAndMipmaps(textureWidth, textureHeight) {
         function isPowerOfTwo(x) {
             return (x & (x - 1)) === 0;
         }
@@ -102,61 +101,14 @@ export class Renderer {
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth * 1, this.gl.drawingBufferHeight * 1);
     }
 
-    async fileToString(filename) {
-        try {
-            const response = await fetch(filename);
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return await response.text();
-        } catch (error) {
-            console.error('There was a problem with the fetch operation:', error);
-            throw error;
-        }
-    }
-
-    compileShader(source, type) {
-        const shader = this.gl.createShader(type);
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.error('An error occurred compiling the shaders: ' + this.gl.getShaderInfoLog(shader));
-            this.gl.deleteShader(shader);
-            return null;
-        }
-        return shader;
-    }
-
-    async initShaderProgram() {
-        var vsSource = await this.fileToString(window.location.href + 'globe/texture_vertex.glsl')
-        var fsSource = await this.fileToString(window.location.href + 'globe/texture_frag.glsl')
-
-        const vertexShader = this.compileShader(vsSource, this.gl.VERTEX_SHADER);
-        const fragmentShader = this.compileShader(fsSource, this.gl.FRAGMENT_SHADER);
-        const shaderProgram = this.gl.createProgram();
-        this.gl.attachShader(shaderProgram, vertexShader);
-        this.gl.attachShader(shaderProgram, fragmentShader);
-        this.gl.linkProgram(shaderProgram);
-        if (!this.gl.getProgramParameter(shaderProgram, this.gl.LINK_STATUS)) {
-            console.error('Unable to initialize the shader program: ' + this.gl.getProgramInfoLog(shaderProgram));
-            return null;
-        }
-        return shaderProgram;
+    addMapTile(textureURL, corner1, corner2, corner3, corner4) {
+        return new SquareMesh(this.gl, textureURL, corner1, corner2, corner3, corner4);
     }
 
     async initRenderer() {
-        this.#shaderProgram = await this.initShaderProgram();
+        this.#shaderProgram = await this.#initShaderProgram();
         this.#positionLocation = this.gl.getAttribLocation(this.#shaderProgram, "aVertexPosition");
         this.#texcoordLocation = this.gl.getAttribLocation(this.#shaderProgram, "aTextureCoord");
-
-        var corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
-        var corner2 = vec3.fromValues(1.0, -1.0, 0.0);
-        var corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
-        var corner4 = vec3.fromValues(1.0, 1.0, 0.0);
-        this.square1 = new SquareMesh(this.gl, 
-            'https://tile.openstreetmap.org/0/0/0.png',
-            //'https://tile.openstreetmap.org/${z}/${x}/${y}.png',
-            corner1, corner2, corner3, corner4);
 
         this.#texcoordBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#texcoordBuffer);
@@ -169,9 +121,59 @@ export class Renderer {
             1.0, 0.0,
         ]), this.gl.STATIC_DRAW);
 
+        var corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
+        var corner2 = vec3.fromValues(1.0, -1.0, 0.0);
+        var corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
+        var corner4 = vec3.fromValues(1.0, 1.0, 0.0);
+        this.square1 = new SquareMesh(this.gl, 
+            'https://tile.openstreetmap.org/0/0/0.png',
+            //'https://tile.openstreetmap.org/${z}/${x}/${y}.png',
+            corner1, corner2, corner3, corner4);
     }
 
-    drawSquareMesh(square, modelMatrix, viewMatrix, projectionMatrix) {
+    async #fileToString(filename) {
+        try {
+            const response = await fetch(filename);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return await response.text();
+        } catch (error) {
+            console.error('There was a problem with the fetch operation:', error);
+            throw error;
+        }
+    }
+
+    #compileShader(source, type) {
+        const shader = this.gl.createShader(type);
+        this.gl.shaderSource(shader, source);
+        this.gl.compileShader(shader);
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.error('An error occurred compiling the shaders: ' + this.gl.getShaderInfoLog(shader));
+            this.gl.deleteShader(shader);
+            return null;
+        }
+        return shader;
+    }
+
+    async #initShaderProgram() {
+        var vsSource = await this.#fileToString(window.location.href + 'globe/texture_vertex.glsl')
+        var fsSource = await this.#fileToString(window.location.href + 'globe/texture_frag.glsl')
+
+        const vertexShader = this.#compileShader(vsSource, this.gl.VERTEX_SHADER);
+        const fragmentShader = this.#compileShader(fsSource, this.gl.FRAGMENT_SHADER);
+        const shaderProgram = this.gl.createProgram();
+        this.gl.attachShader(shaderProgram, vertexShader);
+        this.gl.attachShader(shaderProgram, fragmentShader);
+        this.gl.linkProgram(shaderProgram);
+        if (!this.gl.getProgramParameter(shaderProgram, this.gl.LINK_STATUS)) {
+            console.error('Unable to initialize the shader program: ' + this.gl.getProgramInfoLog(shaderProgram));
+            return null;
+        }
+        return shaderProgram;
+    }
+
+    #drawSquareMesh(square, modelMatrix, viewMatrix, projectionMatrix) {
         this.gl.useProgram(this.#shaderProgram);
 
         this.gl.enableVertexAttribArray(this.#positionLocation);
@@ -245,7 +247,7 @@ export class Renderer {
         const far = 1000;
         mat4.perspective(projectionMatrix, fovy, aspect, near, far);
 
-        this.drawSquareMesh(this.square1, modelMatrix, viewMatrix, projectionMatrix)
+        this.#drawSquareMesh(this.square1, modelMatrix, viewMatrix, projectionMatrix)
         requestAnimationFrame(this.drawScene);
     }
 }
