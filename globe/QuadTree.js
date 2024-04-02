@@ -1,5 +1,5 @@
 export class MapQuadTreeNode {
-    #octreeMaxDepth = 3
+    #octreeMaxDepth = 5//starts from 0
     #imageWidth = 500
 
     constructor(renderer, z=0, x=0, y=0, isRight=0, isDown=0) {
@@ -14,24 +14,26 @@ export class MapQuadTreeNode {
         this.squareMesh = null
         this.imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
 
-        this.initVertices()
+        this.#initVertices()
+        this.#addChildNodes()
     }
 
-    initVertices() {
-        var corner1 = vec3.fromValues(-1.0, -1.0, 0.0);
-        var corner2 = vec3.fromValues(1.0, -1.0, 0.0);
-        var corner3 = vec3.fromValues(-1.0, 1.0, 0.0);
-        var corner4 = vec3.fromValues(1.0, 1.0, 0.0);
+    #initVertices() {
+        var webmercatorVerts = cartography.getTileCorners(this.z, this.x, this.y)
+
+        console.log('verts', webmercatorVerts)
+        console.log('ecef', cartography.latLonAltToECEF(webmercatorVerts.upperLeft.lat, webmercatorVerts.upperLeft.lon, 0.0))
+
         this.squareMesh = this.renderer.addMapTile(
-            'https://tile.openstreetmap.org/0/0/0.png',
-            corner1,
-            corner2,
-            corner3,
-            corner4
+            this.imageUrl,
+            cartography.latLonAltToECEF(webmercatorVerts.lowerLeft.lat, webmercatorVerts.lowerLeft.lon, 0.0),
+            cartography.latLonAltToECEF(webmercatorVerts.lowerRight.lat, webmercatorVerts.lowerRight.lon, 0.0),
+            cartography.latLonAltToECEF(webmercatorVerts.upperLeft.lat, webmercatorVerts.upperLeft.lon, 0.0),
+            cartography.latLonAltToECEF(webmercatorVerts.upperRight.lat, webmercatorVerts.upperRight.lon, 0.0),
         )
     }
 
-    addChildNodes() {
+    #addChildNodes() {
         const tiles = [
             { x: 0, y: 0 }, // Top-left
             { x: 1, y: 0 }, // Top-right
@@ -50,40 +52,26 @@ export class MapQuadTreeNode {
         }
     }
 
-    deleteChildNodes() {
+    #deleteChildNodes() {
     }
 
     renderQuadTree() {
-        this.renderer.drawSquareMesh(this.squareMesh)
+        if (this.z == this.#octreeMaxDepth) {
+            this.renderer.drawSquareMesh(this.squareMesh)
+        }
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {
-                this.children[i].render()
+                this.children[i].renderQuadTree()
             }
         }
     }
 
     update(mapX, mapY, mapZ) {
-        let imgWidth = this.#imageWidth * mapZ
-        if (this.z) {
-            imgWidth /= Math.pow(2, this.z)
-        }
-
-        let posX = this.isRight ? mapX + imgWidth : mapX
-        let posY = this.isDown ? mapY + imgWidth : mapY
-
-        if (this.img) {
-            this.img.width = imgWidth
-            this.img.style.left = `${posX}px`
-            this.img.style.top = `${posY}px`
-
-            let minSize = Math.min(window.innerWidth, window.innerHeight)
-            let sizeOnScreen = imgWidth / minSize
-            if (sizeOnScreen > 0.5 && this.isImageOnScreen(posX, posY, imgWidth, imgWidth)) {
-                this.addChildNodes()
-            } else {
-                this.deleteChildNodes()
-            }
-        }
+        // if (some condition) {
+        //     this.addChildNodes()
+        // } else {
+        //     this.deleteChildNodes()
+        // }
 
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {

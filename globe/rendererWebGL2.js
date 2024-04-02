@@ -222,11 +222,11 @@ export class Renderer {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         this.#frameModelMatrix = mat4.create();
-        // let dtSec = (Date.now() - this.#startTimeMs) / 1000
-        // let spinDurationSec = 4
-        // let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
-        // let rotYRad = degToRad(360 * progress);
-        // mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
+        let dtSec = (Date.now() - this.#startTimeMs) / 1000
+        let spinDurationSec = 4
+        let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
+        let rotYRad = degToRad(360 * progress);
+        mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
 
 
         this.#frameViewMatrix = mat4.create();
