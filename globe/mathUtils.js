@@ -6,23 +6,66 @@ function fmod(a, b) {
     return a - Math.floor(a / b) * b;
 }
 
-function latLonAltToECEF(lat, lon, h) {
-	// WGS-84 ellipsoidal parameters
-	const a = 6378137.0 // Semi-major axis in meters
-	const f = 1 / 298.257223563 // Flattening
-	const eSq = f * (2 - f) // Square of eccentricity
+function clamp(value, min, max) {
+	return Math.max(min, Math.min(max, value));
+}
 
-	//deg to rad
-	const latRad = lat * Math.PI / 180
-	const lonRad = lon * Math.PI / 180
+function clamp01(value) {
+	return Math.max(0.0, Math.min(1.0, value));
+}
 
-	// Prime vertical radius of curvature
-	const N = a / Math.sqrt(1 - eSq * Math.sin(latRad) ** 2)
+const cartography = {
+    tileToLatLon: function(z, x, y) {
+        const n = Math.pow(2, z);
+        const lon_deg = x / n * 360 - 180;
+        const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)));
+        const lat_deg = lat_rad * 180 / Math.PI;
+        return { lat: lat_deg, lon: lon_deg };
+    },
 
-	// ECEF coordinates
-	const x = (N + h) * Math.cos(latRad) * Math.cos(lonRad)
-	const y = (N + h) * Math.cos(latRad) * Math.sin(lonRad)
-	const z = ((1 - eSq) * N + h) * Math.sin(latRad)
+    tileDimensions: function(z) {
+        const n = Math.pow(2, z);
+        const lat1_rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * 0 / n)));
+        const lat2_rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * 1 / n)));
+        const lat_diff_rad = lat1_rad - lat2_rad;
+        const lat_diff_deg = lat_diff_rad * 180 / Math.PI;
+        const lon_diff_deg = 360 / n;
+        return { height: lat_diff_deg, width: lon_diff_deg };
+    },
 
-	return { x, y, z }
+	getTileCorners: function(z, x, y) {
+        const { height, width } = this.tileDimensions(z);
+        const upperLeft = this.tileToLatLon(z, x, y);
+        const upperRight = this.tileToLatLon(z, x + 1, y);
+        const lowerLeft = this.tileToLatLon(z, x, y + 1);
+        const lowerRight = this.tileToLatLon(z, x + 1, y + 1);
+        return { upperLeft, upperRight, lowerLeft, lowerRight };
+    },
+
+	latLonAltToECEF: function(lat, lon, h) {
+		// WGS-84 ellipsoidal parameters
+		const a = 6378137.0 // Semi-major axis in meters
+		const f = 1 / 298.257223563 // Flattening
+		const eSq = f * (2 - f) // Square of eccentricity
+
+		//deg to rad
+		const latRad = degToRad(lat)
+		const lonRad = degToRad(lon)
+
+		// Prime vertical radius of curvature
+		const N = a / Math.sqrt(1 - eSq * Math.sin(latRad) ** 2)
+
+		// ECEF coordinates
+		const x = (N + h) * Math.cos(latRad) * Math.cos(lonRad)
+		const y = (N + h) * Math.cos(latRad) * Math.sin(lonRad)
+		const z = ((1 - eSq) * N + h) * Math.sin(latRad)
+
+		// return vec3.fromValues(x, y, z)
+		//returns like normalzed ecef
+		let res = vec3.fromValues(x, y, z)
+		const result = vec3.create();
+		vec3.divide(result, res, vec3.fromValues(a, a, a))
+		return result
+	},
+
 }

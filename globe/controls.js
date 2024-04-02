@@ -14,7 +14,7 @@ export class GlobeControls {
         let zoomIntensity = e.deltaY * scrollSpeed
         let exponentialFactor = 2
         let newZoom = this.mapZ * Math.pow(1 - zoomIntensity, exponentialFactor);
-        newZoom = this.clamp(newZoom, 1.0, 400000.0)
+        newZoom = clamp(newZoom, 1.0, 400000.0)
 
         let mouseX = e.pageX - this.mapX
         let mouseY = e.pageY - this.mapY
@@ -54,7 +54,4 @@ export class GlobeControls {
         }
     }
 
-    clamp(value, min, max) {
-        return Math.max(min, Math.min(max, value));
-    }
 }
