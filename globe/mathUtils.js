@@ -62,7 +62,11 @@ const cartography = {
 
 		// return vec3.fromValues(x, y, z)
 		//returns like normalzed ecef
-		let res = vec3.fromValues(x, y, z)
+
+		// let res = vec3.fromValues(x, y, z)
+		// idk wtf this coordinate system
+		let res = vec3.fromValues(x, z, -y)
+
 		const result = vec3.create();
 		vec3.divide(result, res, vec3.fromValues(a, a, a))
 		return result
