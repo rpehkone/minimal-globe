@@ -21,9 +21,6 @@ export class MapQuadTreeNode {
     #initVertices() {
         var webmercatorVerts = cartography.getTileCorners(this.z, this.x, this.y)
 
-        console.log('verts', webmercatorVerts)
-        console.log('ecef', cartography.latLonAltToECEF(webmercatorVerts.upperLeft.lat, webmercatorVerts.upperLeft.lon, 0.0))
-
         this.squareMesh = this.renderer.addMapTile(
             this.imageUrl,
             cartography.latLonAltToECEF(webmercatorVerts.lowerLeft.lat, webmercatorVerts.lowerLeft.lon, 0.0),

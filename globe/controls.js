@@ -1,31 +1,39 @@
 export class GlobeControls {
-    constructor() {
+    constructor(canvas) {
+        this.canvas = canvas
+        this.userYaw = 0.0
+        this.userPitch = 0.0
+        this.userZoom = 1.0
+
+        this.isDragging = false
+        this.prevX = 0
+        this.prevY = 0
+
+        this.#attachEventListeners()
     }
 
-    attachEventListeners() {
-        this.fullscreenCapture.addEventListener('mousedown', (e) => this.handleMouseDown(e))
-        document.addEventListener('mousemove', (e) => this.handleMouseMove(e))
-        document.addEventListener('mouseup', (e) => this.handleMouseUp(e))
-        document.addEventListener('wheel', (e) => this.handleScroll(e))
+    #attachEventListeners() {
+        this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e))
+        this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e))
+        this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e))
+        this.canvas.addEventListener('wheel', (e) => this.handleScroll(e))
     }
 
     handleScroll(e) {
         let scrollSpeed = 0.001
         let zoomIntensity = e.deltaY * scrollSpeed
         let exponentialFactor = 2
-        let newZoom = this.mapZ * Math.pow(1 - zoomIntensity, exponentialFactor);
+        let newZoom = this.userZoom * Math.pow(1 - zoomIntensity, exponentialFactor);
         newZoom = clamp(newZoom, 1.0, 400000.0)
 
-        let mouseX = e.pageX - this.mapX
-        let mouseY = e.pageY - this.mapY
+        let mouseX = e.pageX - this.userYaw
+        let mouseY = e.pageY - this.userPitch
         mouseX = mouseX * -1.0
         mouseY = mouseY * -1.0
 
-        this.mapX = (mouseX * newZoom / this.mapZ) + this.mapX - mouseX;
-        this.mapY = (mouseY * newZoom / this.mapZ) + this.mapY - mouseY;
-        this.mapZ = newZoom;
-
-        this.updateMapState();
+        // this.userYaw = (mouseX * newZoom / this.userZoom) + this.userYaw - mouseX;
+        // this.userPitch = (mouseY * newZoom / this.userZoom) + this.userPitch - mouseY;
+        this.userZoom = newZoom;
     }
 
     handleMouseDown(e) {
@@ -39,12 +47,11 @@ export class GlobeControls {
             const deltaX = e.pageX - this.prevX
             const deltaY = e.pageY - this.prevY
 
-            this.mapX += deltaX
-            this.mapY += deltaY
+            this.userYaw += deltaX
+            this.userPitch += deltaY
 
             this.prevX = e.pageX
             this.prevY = e.pageY
-            this.updateMapState()
         }
     }
 
@@ -53,5 +60,4 @@ export class GlobeControls {
             this.isDragging = false
         }
     }
-
 }

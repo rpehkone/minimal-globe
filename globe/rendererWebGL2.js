@@ -94,8 +94,9 @@ export class Renderer {
     #frameViewMatrix
     #frameProjectionMatrix
 
-    constructor(getCanvas) {
+    constructor(getCanvas, controls) {
         this.canvas = getCanvas
+        this.controls = controls
         this.gl = this.canvas.getContext('webgl2', { antialias: true });
         this.drawScene = this.drawScene.bind(this);
         this.#startTimeMs = Date.now()
@@ -224,16 +225,21 @@ export class Renderer {
 
 
         this.#frameModelMatrix = mat4.create();
-        let dtSec = (Date.now() - this.#startTimeMs) / 1000
-        let spinDurationSec = 40
-        let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
-        let rotYRad = degToRad(360 * progress);
-        mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
+        // let dtSec = (Date.now() - this.#startTimeMs) / 1000
+        // let spinDurationSec = 40
+        // let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
+        // let rotYRad = degToRad(360 * progress);
+        // mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
 
+        mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, this.controls.userPitch / 500, [1, 0, 0]);
+        mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, this.controls.userYaw / 500, [0, 1, 0]);
 
         this.#frameViewMatrix = mat4.create();
-        const translation = vec3.fromValues(0, 0, -2);
-        mat4.translate(this.#frameViewMatrix, this.#frameViewMatrix, translation);
+
+        //TODO invert zoom scroll dir here
+        let zoom = 1 + (this.controls.userZoom / 2.0)
+        const translation = vec3.fromValues(0, 0, -zoom)
+        mat4.translate(this.#frameViewMatrix, this.#frameViewMatrix, translation)
 
 
         this.#frameProjectionMatrix = mat4.create();
@@ -244,7 +250,5 @@ export class Renderer {
         mat4.perspective(this.#frameProjectionMatrix, fovy, aspect, near, far);
 
         this.rootNode.renderQuadTree()
-
-        requestAnimationFrame(this.drawScene);
     }
 }
