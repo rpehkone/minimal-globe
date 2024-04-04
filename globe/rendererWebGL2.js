@@ -236,17 +236,20 @@ export class Renderer {
 
         this.#frameViewMatrix = mat4.create();
 
-        //TODO invert zoom scroll dir here
-        let zoom = 1 + (this.controls.userZoom / 2.0)
-        const translation = vec3.fromValues(0, 0, -zoom)
+        let earthRad = 6378137.0 //m
+
+        //should be 1 but i guess the ECEF earth is not sphere so it dont work
+        //TODO get wgs rad at that pos
+        let nearestRad = 0.99
+        const translation = vec3.fromValues(0, 0, -1 * (this.controls.userZoom + nearestRad) * earthRad)
         mat4.translate(this.#frameViewMatrix, this.#frameViewMatrix, translation)
 
 
         this.#frameProjectionMatrix = mat4.create();
         const fovy = degToRad(90)
         const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-        const near = 0.1;
-        const far = 1000;
+        const near = 500;
+        const far = earthRad * 10;
         mat4.perspective(this.#frameProjectionMatrix, fovy, aspect, near, far);
 
         this.rootNode.renderQuadTree()

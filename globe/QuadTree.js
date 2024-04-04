@@ -1,5 +1,6 @@
 export class MapQuadTreeNode {
-    #octreeMaxDepth = 5//starts from 0
+    #octreeMaxDepth = 4//starts from 0
+    // #octreeMaxDepth = 6//starts from 0
     #imageWidth = 500
 
     constructor(renderer, z=0, x=0, y=0, isRight=0, isDown=0) {
@@ -12,7 +13,8 @@ export class MapQuadTreeNode {
         this.children = [null, null, null, null]
         this.img = null
         this.squareMesh = null
-        this.imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+        // this.imageUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+        this.imageUrl = `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}.png`
 
         this.#initVertices()
         this.#addChildNodes()

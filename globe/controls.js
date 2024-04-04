@@ -3,7 +3,7 @@ export class GlobeControls {
         this.canvas = canvas
         this.userYaw = 0.0
         this.userPitch = 0.0
-        this.userZoom = 1.0
+        this.userZoom = 2.0
 
         this.isDragging = false
         this.prevX = 0
@@ -22,9 +22,9 @@ export class GlobeControls {
     handleScroll(e) {
         let scrollSpeed = 0.001
         let zoomIntensity = e.deltaY * scrollSpeed
-        let exponentialFactor = 2
-        let newZoom = this.userZoom * Math.pow(1 - zoomIntensity, exponentialFactor);
-        newZoom = clamp(newZoom, 1.0, 400000.0)
+        let exponentialFactor = 1.5
+        let newZoom = this.userZoom * Math.pow(zoomIntensity + 1.0, exponentialFactor);
+        newZoom = clamp(newZoom, 0.0, 400000.0)
 
         let mouseX = e.pageX - this.userYaw
         let mouseY = e.pageY - this.userPitch
@@ -47,8 +47,9 @@ export class GlobeControls {
             const deltaX = e.pageX - this.prevX
             const deltaY = e.pageY - this.prevY
 
-            this.userYaw += deltaX
-            this.userPitch += deltaY
+            let spinScale = 0.5
+            this.userYaw += deltaX * (this.userZoom * spinScale)
+            this.userPitch += deltaY * (this.userZoom * spinScale)
 
             this.prevX = e.pageX
             this.prevY = e.pageY

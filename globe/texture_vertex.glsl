@@ -10,6 +10,7 @@ void main(void) {
     highp vec4 worldSpacePosition = uModelMatrix * aVertexPosition;
     
     // Here you can modify worldSpacePosition as needed
+    // project to any map projection
 
 
     gl_Position = uProjectionMatrix * uViewMatrix * worldSpacePosition;

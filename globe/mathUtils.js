@@ -14,6 +14,25 @@ function clamp01(value) {
 	return Math.max(0.0, Math.min(1.0, value));
 }
 
+function log2(x) {
+	let isNeg = false
+	if (x < 0) {
+		isNeg = true
+		x *= -1
+	}
+
+	let res = Math.log(x) / Math.log(2);
+	if (isNaN(res) || res === Infinity || res === -Infinity) {
+		return x
+	}
+
+	if (isNeg) {
+		res *= -1
+	}
+	return res
+}
+
+
 const cartography = {
     tileToLatLon: function(z, x, y) {
         const n = Math.pow(2, z);
@@ -60,13 +79,10 @@ const cartography = {
 		const y = (N + h) * Math.cos(latRad) * Math.sin(lonRad)
 		const z = ((1 - eSq) * N + h) * Math.sin(latRad)
 
-		// return vec3.fromValues(x, y, z)
-		//returns like normalzed ecef
-
-		// let res = vec3.fromValues(x, y, z)
 		// idk wtf this coordinate system
 		let res = vec3.fromValues(x, z, -y)
-
+		return res
+		//normalize
 		const result = vec3.create();
 		vec3.divide(result, res, vec3.fromValues(a, a, a))
 		return result
