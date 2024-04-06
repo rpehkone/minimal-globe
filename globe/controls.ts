@@ -23,14 +23,14 @@ export class GlobeControls {
         this.attachEventListeners();
     }
 
-    private attachEventListeners(): void {
+    private attachEventListeners() {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.handleScroll(e));
     }
 
-    private handleScroll(e: WheelEvent): void {
+    private handleScroll(e: WheelEvent) {
         const scrollSpeed = 0.001;
         const zoomIntensity = e.deltaY * scrollSpeed;
         const exponentialFactor = 1.5;
@@ -47,13 +47,13 @@ export class GlobeControls {
         this.userZoom = newZoom;
     }
 
-    private handleMouseDown(e: MouseEvent): void {
+    private handleMouseDown(e: MouseEvent) {
         this.isDragging = true;
         this.prevX = e.pageX;
         this.prevY = e.pageY;
     }
 
-    private handleMouseMove(e: MouseEvent): void {
+    private handleMouseMove(e: MouseEvent) {
         if (this.isDragging) {
             const deltaX = e.pageX - this.prevX;
             const deltaY = e.pageY - this.prevY;
@@ -67,7 +67,7 @@ export class GlobeControls {
         }
     }
 
-    private handleMouseUp(e: MouseEvent): void {
+    private handleMouseUp(e: MouseEvent) {
         if (this.isDragging) {
             this.isDragging = false;
         }

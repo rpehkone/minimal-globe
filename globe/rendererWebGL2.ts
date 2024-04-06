@@ -23,18 +23,18 @@ class SquareMesh {
         this.#setupTexture(textureURL);
     }
 
-    bind(): void {
+    bind() {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.textureID);
     }
 
-    #setupBuffers(): void {
+    #setupBuffers() {
         this.#positionBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices, this.gl.STATIC_DRAW);
     }
 
-    #setupTexture(textureURL: string): void {
+    #setupTexture(textureURL: string) {
         this.textureID = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.textureID);
         const image = new Image();
@@ -57,7 +57,7 @@ class SquareMesh {
         };
     }
 
-    #setupTextureFilteringAndMipmaps(textureWidth: number, textureHeight: number): void {
+    #setupTextureFilteringAndMipmaps(textureWidth: number, textureHeight: number) {
         const isPowerOfTwo = (x: number): boolean => (x & (x - 1)) === 0;
 
         if (isPowerOfTwo(textureWidth) && isPowerOfTwo(textureHeight)) {

@@ -36,7 +36,7 @@ export class MapQuadTreeNode {
         this.#addInitialChildNodes();
     }
 
-    #initVertices(): void {
+    #initVertices() {
         const webmercatorVerts = cartography.getTileCorners(this.z, this.x, this.y);
 
         this.#corners = [
@@ -52,7 +52,7 @@ export class MapQuadTreeNode {
         );
     }
 
-    #addInitialChildNodes(): void {
+    #addInitialChildNodes() {
         const tiles = [
             { x: 0, y: 0 }, // Top-left
             { x: 1, y: 0 }, // Top-right
@@ -71,7 +71,7 @@ export class MapQuadTreeNode {
         }
     }
 
-    #addChildNodes(): void {
+    #addChildNodes() {
         const tiles = [
             { x: 0, y: 0 }, // Top-left
             { x: 1, y: 0 }, // Top-right
@@ -88,7 +88,7 @@ export class MapQuadTreeNode {
         }
     }
 
-    #deleteChildNodes(): void {
+    #deleteChildNodes() {
         //dont delte over minDepth
         // Implement deletion logic here
     }
@@ -146,7 +146,7 @@ export class MapQuadTreeNode {
         return false
     }
 
-    update(): void {
+    update() {
         // if (some condition) {
         // console.log('thissize', this.#sizeOnScreen)
         if (this.z <= this.#octreeMaxDepth && this.#sizeOnScreen > 0.4) {
