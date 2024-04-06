@@ -1,9 +1,11 @@
 import { cartography } from './mathUtils';
+import { vec3, mat4 } from "gl-matrix";
 
 export class MapQuadTreeNode {
     //TODO #minDepth so now lower res than this is shown (but textures can be lower)
     #octreeMaxDepth = 4; //starts from 0
     // #octreeMaxDepth = 6; //starts from 0
+    #corners: vec3[] = [];
 
     private renderer: any;
     public z: number;
@@ -36,12 +38,16 @@ export class MapQuadTreeNode {
     #initVertices(): void {
         const webmercatorVerts = cartography.getTileCorners(this.z, this.x, this.y);
 
-        this.squareMesh = this.renderer.addMapTile(
-            this.imageUrl,
+        this.#corners = [
             cartography.latLonAltToECEF(webmercatorVerts.lowerLeft.lat, webmercatorVerts.lowerLeft.lon, 0.0),
             cartography.latLonAltToECEF(webmercatorVerts.lowerRight.lat, webmercatorVerts.lowerRight.lon, 0.0),
             cartography.latLonAltToECEF(webmercatorVerts.upperLeft.lat, webmercatorVerts.upperLeft.lon, 0.0),
             cartography.latLonAltToECEF(webmercatorVerts.upperRight.lat, webmercatorVerts.upperRight.lon, 0.0),
+        ]
+
+        this.squareMesh = this.renderer.addMapTile(
+            this.imageUrl,
+            this.#corners,
         );
     }
 
@@ -68,7 +74,14 @@ export class MapQuadTreeNode {
         // Implement deletion logic here
     }
 
-    renderQuadTree(): void {
+    #computeSizeOnScreen(mvpMatrix: mat4): number {
+        // this.#corners 
+        return 0
+    }
+
+    renderQuadTree(mvpMatrix: mat4): void {
+        var size = this.#computeSizeOnScreen(mvpMatrix)
+
         //TODO del
         if (this.z == this.#octreeMaxDepth) {
             this.renderer.drawSquareMesh(this.squareMesh);
@@ -78,7 +91,7 @@ export class MapQuadTreeNode {
 
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {
-                this.children[i]!.renderQuadTree();
+                this.children[i]!.renderQuadTree(mvpMatrix);
             }
         }
     }

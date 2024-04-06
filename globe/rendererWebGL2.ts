@@ -5,16 +5,19 @@ import { degToRad } from './mathUtils';
 
 class SquareMesh {
     gl: WebGL2RenderingContext;
+    vertices: Float32Array;
     #textureID: WebGLTexture | null;
     #anistropicExtensions: EXT_texture_filter_anisotropic | null;
     #positionBuffer: WebGLBuffer | null;
-    #vertices: Float32Array;
 
-    constructor(gl: WebGL2RenderingContext, textureURL: string, corner1: number[], corner2: number[], corner3: number[], corner4: number[]) {
+    constructor(gl: WebGL2RenderingContext, textureURL: string, corners: vec3[]) {
         this.gl = gl;
+        this.vertices = new Float32Array([
+            ...corners[0], ...corners[1], ...corners[2], // first triangle
+            ...corners[2], ...corners[1], ...corners[3]  // second triangle
+        ]);
         this.#textureID = null;
         this.#positionBuffer = null;
-        this.#vertices = this.#createVertices(corner1, corner2, corner3, corner4);
         this.#setupBuffers();
         this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
         this.#setupTexture(textureURL);
@@ -25,17 +28,10 @@ class SquareMesh {
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
     }
 
-    #createVertices(corner1: number[], corner2: number[], corner3: number[], corner4: number[]): Float32Array {
-        return new Float32Array([
-            ...corner1, ...corner2, ...corner3, // first triangle
-            ...corner3, ...corner2, ...corner4  // second triangle
-        ]);
-    }
-
     #setupBuffers(): void {
         this.#positionBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.#vertices, this.gl.STATIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices, this.gl.STATIC_DRAW);
     }
 
     #setupTexture(textureURL: string): void {
@@ -111,8 +107,8 @@ export class Renderer {
         this.rootNode = new MapQuadTreeNode(this);
     }
 
-    addMapTile(textureURL: string, corner1: any, corner2: any, corner3: any, corner4: any) {
-        return new SquareMesh(this.gl!, textureURL, corner1, corner2, corner3, corner4);
+    addMapTile(textureURL: string, corners: vec3[]) {
+        return new SquareMesh(this.gl!, textureURL, corners);
     }
 
     async initRenderer() {
@@ -253,6 +249,10 @@ export class Renderer {
         const far = earthRad * 10;
         mat4.perspective(this.#frameProjectionMatrix, fovy, aspect, near, far);
 
-        this.rootNode.renderQuadTree();
+
+        const mvpMatrix = mat4.create();
+        mat4.multiply(mvpMatrix, this.#frameProjectionMatrix, this.#frameViewMatrix);
+        mat4.multiply(mvpMatrix, mvpMatrix, this.#frameModelMatrix);
+        this.rootNode.renderQuadTree(mvpMatrix);
     }
 }
