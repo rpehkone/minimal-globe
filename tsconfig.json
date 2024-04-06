@@ -5,7 +5,9 @@
     "outDir": "./build",
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "noEmit": false
   },
   "files": [
     "./globe/main.ts",
