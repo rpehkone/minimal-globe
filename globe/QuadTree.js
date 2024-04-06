@@ -1,4 +1,5 @@
 export class MapQuadTreeNode {
+    //TODO #minDepth so now lower res than this is shown (but textures can be lower)
     #octreeMaxDepth = 4//starts from 0
     // #octreeMaxDepth = 6//starts from 0
     #imageWidth = 500
@@ -55,9 +56,13 @@ export class MapQuadTreeNode {
     }
 
     renderQuadTree() {
+        //TODO del
         if (this.z == this.#octreeMaxDepth) {
             this.renderer.drawSquareMesh(this.squareMesh)
         }
+        //TODO if all children have textures dont render this
+        //else render this and not children
+
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {
                 this.children[i].renderQuadTree()

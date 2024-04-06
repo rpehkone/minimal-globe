@@ -240,6 +240,7 @@ export class Renderer {
 
         //should be 1 but i guess the ECEF earth is not sphere so it dont work
         //TODO get wgs rad at that pos
+        //or raycast from center to cam pos
         let nearestRad = 0.99
         const translation = vec3.fromValues(0, 0, -1 * (this.controls.userZoom + nearestRad) * earthRad)
         mat4.translate(this.#frameViewMatrix, this.#frameViewMatrix, translation)
