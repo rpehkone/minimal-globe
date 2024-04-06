@@ -31,6 +31,7 @@ class Globe {
     }
 
     mainLoop(): void {
+        this.renderer.tick();
         this.renderer.drawScene();
         requestAnimationFrame(() => this.mainLoop());
     }
