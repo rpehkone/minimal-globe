@@ -1,6 +1,7 @@
 import { MapQuadTreeNode } from './quadTree';
-import { mat4, vec3 } from "gl-matrix";
-import { degToRad } from './mathUtils'
+import { GlobeControls } from './controls';
+import { vec3, mat4 } from "gl-matrix";
+import { degToRad } from './mathUtils';
 
 class SquareMesh {
     gl: WebGL2RenderingContext;
@@ -81,22 +82,23 @@ class SquareMesh {
 export class Renderer {
     canvas: HTMLCanvasElement | null = null;
     gl: WebGL2RenderingContext | null = null;
-    controls: any;
+    controls: GlobeControls;
     rootNode: any;
-    #shaderProgram: WebGLProgram | undefined;
+    #shaderProgram: WebGLProgram | null = null;
     #positionLocation: number | undefined;
     #texcoordLocation: number | undefined;
-    #texcoordBuffer: WebGLBuffer | null;
+    #texcoordBuffer: WebGLBuffer | null = null;
     #startTimeMs: number;
 
     #frameModelMatrix: mat4 | undefined;
     #frameViewMatrix: mat4 | undefined;
     #frameProjectionMatrix: mat4 | undefined;
 
-    constructor(getCanvas: () => HTMLCanvasElement, controls: any) {
-        this.canvas = getCanvas();
+    constructor(canvas: HTMLCanvasElement | null, controls: GlobeControls) {
+        this.canvas = canvas;
         this.controls = controls;
-        this.gl = this.canvas.getContext('webgl2', { antialias: true });
+        this.gl = this.canvas ? this.canvas.getContext('webgl2', { antialias: true }) : null;
+
         this.drawScene = this.drawScene.bind(this);
         this.#startTimeMs = Date.now();
 

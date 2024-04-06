@@ -1,3 +1,5 @@
+import { cartography } from './mathUtils';
+
 export class MapQuadTreeNode {
     //TODO #minDepth so now lower res than this is shown (but textures can be lower)
     #octreeMaxDepth = 4; //starts from 0
