@@ -84,7 +84,11 @@ export class MapQuadTreeNode {
     }
 
     update(mapX: number, mapY: number, mapZ: number): void {
-        // Implement update logic here, including conditions for adding or deleting child nodes
+        // if (some condition) {
+        //     this.addChildNodes()
+        // } else {
+        //     this.deleteChildNodes()
+        // }
 
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {

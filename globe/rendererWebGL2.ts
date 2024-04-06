@@ -225,15 +225,26 @@ export class Renderer {
         this.gl!.enable(this.gl!.DEPTH_TEST);
 
         this.#frameModelMatrix = mat4.create();
+        // let dtSec = (Date.now() - this.#startTimeMs) / 1000
+        // let spinDurationSec = 40
+        // let progress = fmod(dtSec, spinDurationSec) / spinDurationSec
+        // let rotYRad = degToRad(360 * progress);
+        // mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
+
         mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, this.controls.userPitch / 500, [1, 0, 0]);
         mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, this.controls.userYaw / 500, [0, 1, 0]);
 
         this.#frameViewMatrix = mat4.create();
+
         let earthRad = 6378137.0; //m
 
+        //should be 1 but i guess the ECEF earth is not sphere so it dont work
+        //TODO get wgs rad at that pos
+        //or raycast from center to cam pos
         let nearestRad = 0.99;
         const translation = vec3.fromValues(0, 0, -1 * (this.controls.userZoom + nearestRad) * earthRad);
         mat4.translate(this.#frameViewMatrix, this.#frameViewMatrix, translation);
+
 
         this.#frameProjectionMatrix = mat4.create();
         const fovy = degToRad(90)
