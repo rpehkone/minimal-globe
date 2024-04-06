@@ -1,0 +1,19 @@
+{
+  "name": "minimal-globe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build.js",
+  "scripts": {
+    "build": "tsc && node post_build.js"
+  },
+  "author": "rpehkone",
+  "license": "MIT",
+  "dependencies": {
+    "@types/gl-matrix": "^3.2.0",
+    "gl-matrix": "^3.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.5",
+    "typescript": "^5.4.4"
+  }
+}
