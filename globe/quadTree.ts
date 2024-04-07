@@ -127,29 +127,35 @@ export class MapQuadTreeNode {
         return area
     }
 
-    renderQuadTree(mvpMatrix: mat4): boolean {
+    renderQuadTree(mvpMatrix: mat4) {
         this.#sizeOnScreen = this.#computeSizeOnScreen(mvpMatrix)
 
-        //TODO: make separate check to count texture and not render
-        var rendered = 0
+        var hasTexture = 0
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {
-                if (this.children[i]!.renderQuadTree(mvpMatrix)) {
-                    rendered += 1
+                if (this.children[i]?.squareMesh) {
+                    if (this.children[i]?.squareMesh.textureLoaded) {
+                        hasTexture += 1
+                    }
                 }
             }
         }
 
-        if (rendered == 0) {
-            return this.renderer.drawSquareMesh(this.squareMesh);
+        if (hasTexture < 4) {
+            this.renderer.drawSquareMesh(this.squareMesh);
+        } else {
+            for (let i = 0; i < 4; i++) {
+                if (this.children[i]) {
+                    this.children[i]!.renderQuadTree(mvpMatrix)
+                }
+            }
         }
-        return false
     }
 
     update() {
         // if (some condition) {
         // console.log('thissize', this.#sizeOnScreen)
-        if (this.z <= this.#octreeMaxDepth && this.#sizeOnScreen > 0.4) {
+        if (this.z < this.#octreeMaxDepth && this.#sizeOnScreen > 0.4) {
             // console.log('trying to add children to ', this.z, this.x, this.y)
             this.#addChildNodes()
         }

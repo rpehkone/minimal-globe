@@ -6,9 +6,10 @@ import { degToRad } from './mathUtils';
 class SquareMesh {
     gl: WebGL2RenderingContext;
     vertices: Float32Array;
-    textureID: WebGLTexture | null;
+    public textureLoaded: boolean = false;
+    #textureID: WebGLTexture | null = null;
     #anistropicExtensions: EXT_texture_filter_anisotropic | null;
-    #positionBuffer: WebGLBuffer | null;
+    #positionBuffer: WebGLBuffer | null = null;
 
     constructor(gl: WebGL2RenderingContext, textureURL: string, corners: vec3[]) {
         this.gl = gl;
@@ -16,8 +17,6 @@ class SquareMesh {
             ...corners[0], ...corners[1], ...corners[2], // first triangle
             ...corners[2], ...corners[1], ...corners[3]  // second triangle
         ]);
-        this.textureID = null;
-        this.#positionBuffer = null;
         this.#setupBuffers();
         this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
         this.#setupTexture(textureURL);
@@ -25,7 +24,7 @@ class SquareMesh {
 
     bind() {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.textureID);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
     }
 
     #setupBuffers() {
@@ -35,13 +34,13 @@ class SquareMesh {
     }
 
     #setupTexture(textureURL: string) {
-        this.textureID = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.textureID);
+        this.#textureID = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
         const image = new Image();
         image.src = textureURL;
         image.crossOrigin = 'anonymous';
         image.onload = () => {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.textureID);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);
 
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
@@ -54,6 +53,7 @@ class SquareMesh {
             this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, format, type, image);
 
             this.#setupTextureFilteringAndMipmaps(image.width, image.height);
+            this.textureLoaded = true
         };
     }
 
@@ -181,10 +181,7 @@ export class Renderer {
         return shaderProgram;
     }
 
-    drawSquareMesh(square: any): boolean {
-        if (square.textureID == null) {
-            return false
-        }
+    drawSquareMesh(square: any) {
         this.gl!.useProgram(this.#shaderProgram);
 
         this.gl!.enableVertexAttribArray(this.#positionLocation!);
@@ -216,7 +213,6 @@ export class Renderer {
         this.gl!.drawArrays(this.gl!.TRIANGLES, 0, 6);
         //debug lines
         // this.gl!.drawArrays(this.gl!.LINE_LOOP, 0, 6);
-        return true
     }
 
     tick() {
