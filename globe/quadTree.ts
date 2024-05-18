@@ -42,14 +42,24 @@ export class MapQuadTreeNode {
     }
 
     #initVertices() {
-        const webmercatorVerts = cartography.getTileCorners(this.z, this.x, this.y);
+        var tmpz = this.z + 1
+        var tmpx = this.x * 2
+        var tmpy = this.y * 2
 
-        this.#corners = [
-            cartography.latLonAltToECEF(webmercatorVerts.lowerLeft.lat, webmercatorVerts.lowerLeft.lon, 0.0),
-            cartography.latLonAltToECEF(webmercatorVerts.lowerRight.lat, webmercatorVerts.lowerRight.lon, 0.0),
-            cartography.latLonAltToECEF(webmercatorVerts.upperLeft.lat, webmercatorVerts.upperLeft.lon, 0.0),
-            cartography.latLonAltToECEF(webmercatorVerts.upperRight.lat, webmercatorVerts.upperRight.lon, 0.0),
-        ]
+        const corners = [];
+
+        for (let dy = 0; dy <= 1; dy++) {
+            for (let dx = 0; dx <= 1; dx++) {
+                const webmercatorVerts = cartography.getTileCorners(tmpz, tmpx + dx, tmpy + dy);
+                corners.push(
+                    cartography.latLonAltToECEF(webmercatorVerts.lowerLeft.lat, webmercatorVerts.lowerLeft.lon, 0.0),
+                    cartography.latLonAltToECEF(webmercatorVerts.lowerRight.lat, webmercatorVerts.lowerRight.lon, 0.0),
+                    cartography.latLonAltToECEF(webmercatorVerts.upperLeft.lat, webmercatorVerts.upperLeft.lon, 0.0),
+                    cartography.latLonAltToECEF(webmercatorVerts.upperRight.lat, webmercatorVerts.upperRight.lon, 0.0)
+                );
+            }
+        }
+        this.#corners = corners;
 
         this.squareMesh = this.renderer.addMapTile(
             this.imageUrl,

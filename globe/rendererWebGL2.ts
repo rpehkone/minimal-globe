@@ -15,7 +15,13 @@ class SquareMesh {
         this.gl = gl;
         this.vertices = new Float32Array([
             ...corners[0], ...corners[1], ...corners[2], // first triangle
-            ...corners[2], ...corners[1], ...corners[3]  // second triangle
+            ...corners[2], ...corners[1], ...corners[3],  // second triangle
+            ...corners[4], ...corners[5], ...corners[6],
+            ...corners[6], ...corners[5], ...corners[7],
+            ...corners[8], ...corners[9], ...corners[10],
+            ...corners[10], ...corners[9], ...corners[11],
+            ...corners[12], ...corners[13], ...corners[14],
+            ...corners[14], ...corners[13], ...corners[15]
         ]);
         this.#setupBuffers();
         this.#anistropicExtensions = this.gl.getExtension('EXT_texture_filter_anisotropic') || this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') || this.gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
@@ -132,12 +138,33 @@ export class Renderer {
         this.#texcoordBuffer = this.gl!.createBuffer();
         this.gl!.bindBuffer(this.gl!.ARRAY_BUFFER, this.#texcoordBuffer!);
         this.gl!.bufferData(this.gl!.ARRAY_BUFFER, new Float32Array([
-            0.0, 1.0,
-            1.0, 1.0,
+            0.0, 0.5,
+            0.5, 0.5,
             0.0, 0.0,
             0.0, 0.0,
-            1.0, 1.0,
+            0.5, 0.5,
+            0.5, 0.0,
+
+            0.5, 0.5,
+            1.0, 0.5,
+            0.5, 0.0,
+            0.5, 0.0,
+            1.0, 0.5,
             1.0, 0.0,
+
+            0.0, 1.0,
+            0.5, 1.0,
+            0.0, 0.5,
+            0.0, 0.5,
+            0.5, 1.0,
+            0.5, 0.5,
+
+            0.5, 1.0,
+            1.0, 1.0,
+            0.5, 0.5,
+            0.5, 0.5,
+            1.0, 1.0,
+            1.0, 0.5
         ]), this.gl!.STATIC_DRAW);
     }
 
@@ -225,9 +252,9 @@ export class Renderer {
 
         if (this.drawArraysAsLines) {
             //debug lines
-            this.gl!.drawArrays(this.gl!.LINE_LOOP, 0, 6);
+            this.gl!.drawArrays(this.gl!.LINE_LOOP, 0, 6 * 4);
         } else {
-            this.gl!.drawArrays(this.gl!.TRIANGLES, 0, 6);
+            this.gl!.drawArrays(this.gl!.TRIANGLES, 0, 6 * 4);
         }
     }
 
