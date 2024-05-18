@@ -85,6 +85,7 @@ export class Renderer {
     #texcoordLocation: number | undefined;
     #texcoordBuffer: WebGLBuffer | null = null;
     #startTimeMs: number;
+    drawArraysAsLines: Boolean = false;
 
     #frameModelMatrix: mat4 | undefined;
     #frameViewMatrix: mat4 | undefined;
@@ -210,9 +211,12 @@ export class Renderer {
             this.#frameProjectionMatrix!
         );
 
-        this.gl!.drawArrays(this.gl!.TRIANGLES, 0, 6);
-        //debug lines
-        // this.gl!.drawArrays(this.gl!.LINE_LOOP, 0, 6);
+        if (this.drawArraysAsLines) {
+            //debug lines
+            this.gl!.drawArrays(this.gl!.LINE_LOOP, 0, 6);
+        } else {
+            this.gl!.drawArrays(this.gl!.TRIANGLES, 0, 6);
+        }
     }
 
     tick() {
@@ -233,6 +237,9 @@ export class Renderer {
         // let rotYRad = degToRad(360 * progress);
         // mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, rotYRad, [0, 1, 0]);
 
+        if (this.controls.spaceClick) {
+            this.drawArraysAsLines = !this.drawArraysAsLines
+        }
         mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, this.controls.userPitch / 500, [1, 0, 0]);
         mat4.rotate(this.#frameModelMatrix, this.#frameModelMatrix, this.controls.userYaw / 500, [0, 1, 0]);
 

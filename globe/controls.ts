@@ -6,6 +6,9 @@ export class GlobeControls {
     public userPitch: number;
     public userZoom: number;
 
+    public spaceDown: boolean;
+    public spaceClick: boolean;
+
     private isDragging: boolean;
     private prevX: number;
     private prevY: number;
@@ -16,6 +19,9 @@ export class GlobeControls {
         this.userPitch = 0.0;
         this.userZoom = 2.0;
 
+        this.spaceDown = false;
+        this.spaceClick = false;
+
         this.isDragging = false;
         this.prevX = 0;
         this.prevY = 0;
@@ -23,11 +29,35 @@ export class GlobeControls {
         this.attachEventListeners();
     }
 
+    public tickReset() {
+        this.spaceClick = false;
+    }
+
     private attachEventListeners() {
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.handleScroll(e));
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e, 'down'));
+        document.addEventListener('keyup', (e) => this.handleKeyboard(e, 'up'));
+    }
+
+    private handleKeyboard(e: KeyboardEvent, action: 'down' | 'up') {
+        if (e.code === 'Space') {
+
+            if (action == 'down') {
+                //prevent repeated keys
+                if (this.spaceDown == false) {
+                    this.spaceClick = true;
+                }
+                this.spaceDown = true
+            } else {
+                this.spaceDown = false
+            }
+        }
     }
 
     private handleScroll(e: WheelEvent) {
