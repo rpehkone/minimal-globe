@@ -22,6 +22,18 @@ class SquareMesh {
         this.#setupTexture(textureURL);
     }
 
+    delete() {
+        if (this.#positionBuffer) {
+            this.gl.deleteBuffer(this.#positionBuffer);
+            this.#positionBuffer = null;
+        }
+
+        if (this.#textureID) {
+            this.gl.deleteTexture(this.#textureID);
+            this.#textureID = null;
+        }
+    }
+
     bind() {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#positionBuffer);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.#textureID);

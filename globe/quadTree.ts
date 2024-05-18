@@ -36,6 +36,11 @@ export class MapQuadTreeNode {
         this.#addInitialChildNodes();
     }
 
+    delete() {
+        this.squareMesh.delete();
+        this.squareMesh = null;
+    }
+
     #initVertices() {
         const webmercatorVerts = cartography.getTileCorners(this.z, this.x, this.y);
 
@@ -81,6 +86,7 @@ export class MapQuadTreeNode {
 
         for (let i = 0; i < 4; i++) {
             if (this.children[i] == null) {
+                // console.log('adding child to ', i, this.z, this.x, this.y)
                 const newX = 2 * this.x + tiles[i].x;
                 const newY = 2 * this.y + tiles[i].y;
                 this.children[i] = new MapQuadTreeNode(this.renderer, this.z + 1, newX, newY, tiles[i].x, tiles[i].y);
@@ -88,9 +94,16 @@ export class MapQuadTreeNode {
         }
     }
 
-    #deleteChildNodes() {
-        //dont delte over minDepth
-        // Implement deletion logic here
+    deleteChildNodes() {
+        for (let i = 0; i < 4; i++) {
+            let ch = this.children[i]
+            if (ch != null) {
+                // console.log('del child', i, this.x, this.y, this.z, this.#sizeOnScreen)
+                this.children[i]?.deleteChildNodes();
+                ch.delete();
+                this.children[i] = null;
+            }
+        }
     }
 
     #triangleSizeOnScreen(corner1: vec2, corner2: vec2, corner3: vec2): number {
@@ -100,10 +113,6 @@ export class MapQuadTreeNode {
             corner3[0] * (corner1[1] - corner2[1])
         );
         return area;
-    }
-
-    #clampVec2ToNDC(vec: vec2): vec2 {
-        return vec2.fromValues(clamp(vec[0], -1, 1), clamp(vec[1], -1, 1));
     }
 
     #computeSizeOnScreen(mvpMatrix: mat4): number {
@@ -119,7 +128,7 @@ export class MapQuadTreeNode {
                 transformedVec4[1] / transformedVec4[3],
                 // transformedVec4[2] / transformedVec4[3]
             );
-            screenSpaceCorners.push(this.#clampVec2ToNDC(transformedVec));
+            screenSpaceCorners.push(transformedVec);
         });
 
         var area = this.#triangleSizeOnScreen(screenSpaceCorners[0], screenSpaceCorners[1], screenSpaceCorners[2]) // first triangle
@@ -153,15 +162,15 @@ export class MapQuadTreeNode {
     }
 
     update() {
-        // if (some condition) {
-        // console.log('thissize', this.#sizeOnScreen)
-        if (this.z < this.#octreeMaxDepth && this.#sizeOnScreen > 0.4) {
-            // console.log('trying to add children to ', this.z, this.x, this.y)
-            this.#addChildNodes()
+        if (this.z < this.#octreeMaxDepth) {
+            if (this.#sizeOnScreen > 0.4) {
+                this.#addChildNodes();
+            } else if (this.#sizeOnScreen < 0.01){
+                if (this.z > this.#minDepth) {
+                    this.deleteChildNodes();
+                }
+            }
         }
-        // } else {
-        //     this.deleteChildNodes()
-        // }
 
         for (let i = 0; i < 4; i++) {
             if (this.children[i]) {
